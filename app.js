@@ -13,19 +13,20 @@ const express = require('express');
     const PORT = process.env.PORT || 3000;
 
 const corsOptions = {
-    
-    origin: 'https://colegiofront.vercel.app', 
-    
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'], 
-    
-    // Permite el envío de credenciales (cookies, encabezados de autorización).
-    // Aunque no uses autenticación basada en cookies, es una buena práctica para CORS.
-    credentials: true, 
-    
-    // Para las solicitudes preflight (OPTIONS), indica el código de estado de éxito.
-    optionsSuccessStatus: 204 
-};
-
+        // El 'origin' DEBE ser la URL EXACTA de tu frontend en Vercel.
+        // Copia y pega directamente de la barra de direcciones de tu navegador cuando estés en tu app de Vercel.
+        origin: 'https://colegiofront.vercel.app', 
+        
+        // Métodos HTTP que tu backend permitirá desde el frontend.
+        // OPTIONS es crucial para las "preflight requests" de CORS.
+        methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'], 
+        
+        // Permite el envío de credenciales (cookies, encabezados de autorización).
+        credentials: true, 
+        
+        // Para las solicitudes preflight (OPTIONS), indica el código de estado de éxito.
+        optionsSuccessStatus: 204 
+    };
     // Middlewares
     app.use(cors(corsOptions)); // Usa la configuración de CORS
     app.use(express.json());
