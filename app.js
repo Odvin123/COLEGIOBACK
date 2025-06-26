@@ -12,8 +12,18 @@ const express = require('express');
     const app = express();
     const PORT = process.env.PORT || 3000;
 
+    const corsOptions = {
+    // Reemplaza 'https://colegiofront.vercel.app' con la URL EXACTA de tu frontend en Vercel
+    // Si tu frontend tiene múltiples dominios (ej. vercel.app y tu dominio personalizado),
+    // puedes ponerlos en un array: ['https://colegiofront.vercel.app', 'https://tudominio.com']
+    origin: 'https://colegiofront.vercel.app', 
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Métodos HTTP permitidos
+    credentials: true, // Permite el envío de cookies o encabezados de autorización
+    optionsSuccessStatus: 204 // Para preflight requests (OPTIONS)
+};
+
     // Middlewares
-    app.use(cors());
+    app.use(cors(corsOptions)); // Usa la configuración de CORS
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
