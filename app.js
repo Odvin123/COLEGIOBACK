@@ -15,7 +15,7 @@ const express = require('express');
 const corsOptions = {
     // El 'origin' DEBE ser la URL EXACTA de tu frontend en Vercel.
     // Copia y pega directamente de la barra de direcciones de tu navegador cuando estés en tu app de Vercel.
-    origin: 'https://colegiofront.vercel.app', 
+    origin: '*', 
 
     // Métodos HTTP que tu backend permitirá desde el frontend.
     // OPTIONS es crucial para las "preflight requests" de CORS.
