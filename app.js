@@ -84,8 +84,9 @@ const corsOptions = {
     });
 
     
-    app.use(express.static(path.join(__dirname, '../Frontend')));
-
+    app.get('/', (req, res) => {
+  res.send('🎉 Backend del Colegio en línea desde Koyeb');
+});
     // Iniciar servidor
     app.listen(PORT, () => {
         console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
