@@ -10,7 +10,7 @@ const express = require('express');
 
 
     const app = express();
-    const PORT = process.env.PORT || 3000;
+    const PORT = process.env.PORT || 8000;
     
 const corsOptions = {
     // El 'origin' DEBE ser la URL EXACTA de tu frontend en Vercel.
