@@ -1,4 +1,4 @@
-const { pool } = require('../db'); // Asegúrate de que esta línea esté al inicio
+const { pool } = require('../db'); 
 
 async function saveStudentData(data, matriculaId) {
     let client;
@@ -46,7 +46,7 @@ async function saveStudentData(data, matriculaId) {
     }
 }
 
-// NUEVA FUNCIÓN: Para obtener todos los datos de estudiantes para el dashboard con camelCase
+
 async function getAllStudentData() {
     let client;
     try {

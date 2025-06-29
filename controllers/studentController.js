@@ -1,5 +1,5 @@
-// controllers/studentController.js
-const { saveStudentData } = require('../models/studentModel'); // Asegúrate que esta ruta también sea correcta
+
+const { saveStudentData } = require('../models/studentModel'); 
 
 exports.createStudentData = async (req, res) => {
     try {

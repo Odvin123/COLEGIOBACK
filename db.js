@@ -1,14 +1,14 @@
-const { Pool } = require('pg'); // Importamos Pool de pg
+const { Pool } = require('pg'); 
 require('dotenv').config();
 
 const config = {
-  connectionString: process.env.DATABASE_URL, // Usamos la URI de conexión
+  connectionString: process.env.DATABASE_URL, 
   ssl: {
-    rejectUnauthorized: false // Para producción, considera true si tienes un certificado válido o si Supabase lo requiere. En desarrollo, suele ser false para evitar problemas.
+    rejectUnauthorized: false 
   }
 };
 
-const pool = new Pool(config); // Creamos el pool de conexiones
+const pool = new Pool(config); 
 
 pool.connect()
   .then(() => {
@@ -18,4 +18,4 @@ pool.connect()
     console.error('❌ Error al conectar a PostgreSQL:', err);
   });
 
-module.exports = { pool }; // Exportamos solo el pool
+module.exports = { pool };
