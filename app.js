@@ -19,13 +19,13 @@ const corsOptions = {
 
     // Métodos HTTP que tu backend permitirá desde el frontend.
     // OPTIONS es crucial para las "preflight requests" de CORS.
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'], 
+   // methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'], //
 
     // Permite el envío de credenciales (cookies, encabezados de autorización).
     credentials: true, 
 
     // Para las solicitudes preflight (OPTIONS), indica el código de estado de éxito.
-    optionsSuccessStatus: 204 
+   // optionsSuccessStatus: 204 
 };
 // Middleware de CORS aplicado para permitir comunicación con el frontend de Vercel. (Este es el nuevo comentario)
 app.use(cors(corsOptions));
