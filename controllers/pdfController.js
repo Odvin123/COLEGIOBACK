@@ -1,106 +1,168 @@
- const pdf = require('html-pdf');
+const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
 
-    exports.generatePdf = (req, res) => {
-        const formData = req.body;
+exports.generatePdf = async (req, res) => {
+    const formData = req.body;
 
-        const getRadioValue = (name, data) => {
-            return data[name] || '';
-        };
+ 
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Formulario de Matrícula</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 20px;
+                    line-height: 1.6;
+                    color: #333;
+                }
+                h1, h2, h3 {
+                    color: #2c3e50;
+                    text-align: center;
+                    margin-bottom: 20px;
+                }
+                h3 {
+                    border-bottom: 2px solid #3498db;
+                    padding-bottom: 5px;
+                    margin-top: 30px;
+                    color: #3498db;
+                }
+                .section {
+                    background-color: #f9f9f9;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin-bottom: 25px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+                }
+                label {
+                    font-weight: bold;
+                    color: #555;
+                    display: inline-block;
+                    width: 200px; /* Ancho fijo para las etiquetas */
+                    vertical-align: top;
+                }
+                span {
+                    display: inline-block;
+                    vertical-align: top;
+                    max-width: calc(100% - 210px); /* Resta el ancho de la etiqueta + margen */
+                }
+                div {
+                    margin-bottom: 10px;
+                    display: flex; /* Para alinear etiqueta y valor */
+                    align-items: flex-start;
+                }
+                div.radio-group {
+                    display: block;
+                }
+                div.radio-group label {
+                    width: auto;
+                    font-weight: normal;
+                }
+                /* Estilos para que las secciones se vean limpias */
+                .section div:last-child {
+                    margin-bottom: 0;
+                }
+            </style>
+        </head>
+        <body>
+            <h2>Formulario de Matrícula</h2>
 
-        const htmlContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Ficha de Matrícula</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; font-size: 10pt; }
-                    h1, h2, h3 { text-align: center; color: #333; margin-bottom: 10px; }
-                    h1 { font-size: 18pt; }
-                    h2 { font-size: 14pt; }
-                    h3 { font-size: 12pt; margin-top: 20px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                    th, td { border: 1px solid #ddd; padding: 6px; text-align: left; vertical-align: top; }
-                    th { background-color: #f2f2f2; font-weight: bold; width: 35%; }
-                    td { width: 65%; }
-                    .text-center { text-align: center; }
-                    .logo { max-width: 100px; display: block; margin: 0 auto 10px; }
-                </style>
-            </head>
-            <body>
-                <div class="text-center">
-                    <h1>COLEGIO SOLDADO DE LA CRUZ</h1>
-                    <h2>FICHA DE NUEVO INGRESO DE ESTUDIANTES 2025</h2>
-                </div>
+            <div class="section">
+                <h3>DATOS PERSONALES DEL ESTUDIANTE</h3>
+                <div><label>Primer Nombre:</label><span>${formData.nombre || 'N/A'}</span></div>
+                <div><label>Segundo Nombre:</label><span>${formData.segundoNombre || 'N/A'}</span></div>
+                <div><label>Primer Apellido:</label><span>${formData.apellido1 || 'N/A'}</span></div>
+                <div><label>Segundo Apellido:</label><span>${formData.apellido2 || 'N/A'}</span></div>
+                <div><label>Teléfono:</label><span>${formData.telefono || 'N/A'}</span></div>
+                <div><label>Dirección:</label><span>${formData.direccion || 'N/A'}</span></div>
+                <div><label>Fecha de Nacimiento:</label><span>${formData.fechaNacimiento || 'N/A'}</span></div>
+                <div><label>Género:</label><span>${formData.genero || 'N/A'}</span></div>
+                <div><label>Peso (kg):</label><span>${formData.peso || 'N/A'}</span></div>
+                <div><label>Talla (cm):</label><span>${formData.talla || 'N/A'}</span></div>
+                <div><label>Nacionalidad:</label><span>${formData.nacionalidad || 'N/A'}</span></div>
+                <div><label>País de Nacimiento:</label><span>${formData.paisNacimiento || 'N/A'}</span></div>
+                <div><label>Departamento:</label><span>${formData.departamento || 'N/A'}</span></div>
+                <div><label>Municipio/Distrito:</label><span>${formData.municipio || 'N/A'}</span></div>
+                <div><label>Lengua Materna:</label><span>${formData.lenguaMaterna || 'N/A'}</span></div>
+                <div><label>Discapacidad:</label><span>${formData.discapacidad || 'N/A'}</span></div>
+                <div><label>¿Pertenece a territorio indígena?:</label><span>${formData.territorioIndigena || 'N/A'}</span></div>
+                <div><label>¿Habita en territorio indígena?:</label><span>${formData.habitaIndigena || 'N/A'}</span></div>
+            </div>
 
-                <h3>I. DATOS PERSONALES DEL ESTUDIANTE DE NUEVO INGRESO</h3>
-                <table>
-                    <tr><th>Primer Nombre:</th><td>${formData.nombre || ''}</td></tr>
-                    <tr><th>Segundo Nombre:</th><td>${formData.segundoNombre || ''}</td></tr>
-                    <tr><th>Primer Apellido:</th><td>${formData.apellido1 || ''}</td></tr>
-                    <tr><th>Segundo Apellido:</th><td>${formData.apellido2 || ''}</td></tr>
-                    <tr><th>Teléfono:</th><td>${formData.telefono || ''}</td></tr>
-                    <tr><th>Dirección:</th><td>${formData.direccion || ''}</td></tr>
-                    <tr><th>Fecha de Nacimiento:</th><td>${formData.fechaNacimiento || ''}</td></tr>
-                    <tr><th>Género:</th><td>${formData.genero || ''}</td></tr>
-                    <tr><th>Peso (kg):</th><td>${formData.peso || ''}</td></tr>
-                    <tr><th>Talla (cm):</th><td>${formData.talla || ''}</td></tr>
-                    <tr><th>Nacionalidad:</th><td>${formData.nacionalidad || ''}</td></tr>
-                    <tr><th>País de Nacimiento:</th><td>${formData.paisNacimiento || ''}</td></tr>
-                    <tr><th>Departamento:</th><td>${formData.departamento || ''}</td></tr>
-                    <tr><th>Municipio/Distrito:</th><td>${formData.municipio || ''}</td></tr>
-                    <tr><th>Lengua Materna:</th><td>${formData.lenguaMaterna || ''}</td></tr>
-                    <tr><th>Discapacidad:</th><td>${formData.discapacidad || ''}</td></tr>
-                    <tr><th>Territorio Indígena:</th><td>${formData.territorioIndigena || 'N/A'}</td></tr>
-                    <tr><th>Habita en Territorio Indígena:</th><td>${formData.habitaIndigena || 'N/A'}</td></tr>
-                </table>
+            <div class="section">
+                <h3>DATOS PERSONALES DE LOS PADRES O TUTOR</h3>
+                <div><label>Nombre Madre:</label><span>${formData.nombreMadre || 'N/A'}</span></div>
+                <div><label>Cédula Madre:</label><span>${formData.cedulaMadre || 'N/A'}</span></div>
+                <div><label>Teléfono Madre:</label><span>${formData.telefonoMadre || 'N/A'}</span></div>
+                <div><label>Nombre Padre:</label><span>${formData.nombrePadre || 'N/A'}</span></div>
+                <div><label>Cédula Padre:</label><span>${formData.cedulaPadre || 'N/A'}</span></div>
+                <div><label>Teléfono Padre:</label><span>${formData.telefonoPadre || 'N/A'}</span></div>
+                <div><label>Nombre Tutor:</label><span>${formData.nombreTutor || 'N/A'}</span></div>
+                <div><label>Cédula Tutor:</label><span>${formData.cedulaTutor || 'N/A'}</span></div>
+                <div><label>Teléfono Tutor:</label><span>${formData.telefonoTutor || 'N/A'}</span></div>
+            </div>
 
-                <h3>II. DATOS PERSONALES DE LOS PADRES O TUTOR</h3>
-                <table>
-                    <tr><th>Nombres y Apellidos de la Madre:</th><td>${formData.nombreMadre || 'N/A'}</td></tr>
-                    <tr><th>Cédula de la Madre:</th><td>${formData.cedulaMadre || 'N/A'}</td></tr>
-                    <tr><th>Teléfono de la Madre:</th><td>${formData.telefonoMadre || 'N/A'}</td></tr>
-                    <tr><th>Nombres y Apellidos del Padre:</th><td>${formData.nombrePadre || 'N/A'}</td></tr>
-                    <tr><th>Cédula del Padre:</th><td>${formData.cedulaPadre || 'N/A'}</td></tr>
-                    <tr><th>Teléfono del Padre:</th><td>${formData.telefonoPadre || 'N/A'}</td></tr>
-                    <tr><th>Nombres y Apellidos del Tutor:</th><td>${formData.nombreTutor || 'N/A'}</td></tr>
-                    <tr><th>Cédula del Tutor:</th><td>${formData.cedulaTutor || 'N/A'}</td></tr>
-                    <tr><th>Teléfono del Tutor:</th><td>${formData.telefonoTutor || 'N/A'}</td></tr>
-                </table>
+            <div class="section">
+                <h3>DATOS ACADÉMICOS DEL ESTUDIANTE</h3>
+                <div><label>Fecha de Matrícula:</label><span>${formData.fechaMatricula || 'N/A'}</span></div>
+                <div><label>Departamento (Acad.):</label><span>${formData.departamentoacad || 'N/A'}</span></div>
+                <div><label>Municipio/Distrito (Acad.):</label><span>${formData.municipioAcad || 'N/A'}</span></div>
+                <div><label>Código Único Est.:</label><span>${formData.codigoUnico || 'N/A'}</span></div>
+                <div><label>Código Centro Ed.:</label><span>${formData.codigoCentro || 'N/A'}</span></div>
+                <div><label>Nombre Centro Ed.:</label><span>${formData.nombreCentro || 'N/A'}</span></div>
+                <div><label>Nivel Educativo:</label><span>${formData.nivelEducativo || 'N/A'}</span></div>
+                <div><label>Modalidad:</label><span>${formData.modalidad || 'N/A'}</span></div>
+                <div><label>Turno:</label><span>${formData.turno || 'N/A'}</span></div>
+                <div><label>Nivel/Grado/Año/Ciclo/Grupo:</label><span>${formData.grado || 'N/A'}</span></div>
+                <div><label>Sección:</label><span>${formData.seccion || 'N/A'}</span></div>
+                <div><label>¿Es repitente?:</label><span>${formData.repitente || 'N/A'}</span></div>
+            </div>
+        </body>
+        </html>
+    `;
 
-                <h3>III. DATOS ACADÉMICOS DEL ESTUDIANTE</h3>
-                <table>
-                    <tr><th>Fecha de Matrícula:</th><td>${formData.fechaMatricula || ''}</td></tr>
-                    <tr><th>Departamento de Proviene:</th><td>${formData.departamentoacad || ''}</td></tr>
-                    <tr><th>Municipio/Distrito:</th><td>${formData.municipioAcad || ''}</td></tr>
-                    <tr><th>Código Único del Establecimiento:</th><td>${formData.codigoUnico || ''}</td></tr>
-                    <tr><th>Código del Centro Educativo:</th><td>${formData.codigoCentro || ''}</td></tr>
-                    <tr><th>Nombre del Centro Educativo:</th><td>${formData.nombreCentro || ''}</td></tr>
-                    <tr><th>Nivel Educativo:</th><td>${formData.nivelEducativo || ''}</td></tr>
-                    <tr><th>Modalidad:</th><td>${formData.modalidad || ''}</td></tr>
-                    <tr><th>Turno:</th><td>${getRadioValue('turno', formData)}</td></tr>
-                    <tr><th>Nivel/Grado/Año/Ciclo/Grupo:</th><td>${formData.grado || ''}</td></tr>
-                    <tr><th>Sección:</th><td>${formData.seccion || ''}</td></tr>
-                    <tr><th>Es Repitente?:</th><td>${getRadioValue('repitente', formData)}</td></tr>
-                </table>
-            </body>
-            </html>
-        `;
-
-        const options = {
-            format: 'Letter',
-            orientation: 'portrait',
-            border: '15mm'
-        };
-
-        pdf.create(htmlContent, options).toBuffer((err, buffer) => {
-            if (err) {
-                console.error('Error al crear el PDF:', err.message);
-                return res.status(500).send('Error al generar el PDF.');
-            }
-
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename="ficha_matricula_${formData.nombre || 'desconocido'}_${formData.apellido1 || 'desconocido'}.pdf"`);
-            res.send(buffer);
+    let browser = null;
+    try {
+        browser = await puppeteer.launch({
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            executablePath: await chromium.executablePath,
+            headless: chromium.headless, 
         });
-    };
-    
+
+        const page = await browser.newPage();
+
+        await page.setContent(htmlContent, {
+            waitUntil: 'networkidle0' 
+        });
+
+        // Genera el PDF
+        const pdfBuffer = await page.pdf({
+            format: 'Letter',        
+            printBackground: true,    
+            margin: {                 
+                top: '20mm',
+                right: '20mm',
+                bottom: '20mm',
+                left: '20mm'
+            }
+        });
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=matricula_${formData.nombre}_${formData.apellido1}.pdf`);
+        res.send(pdfBuffer);
+
+    } catch (error) {
+        console.error('❌ Error al generar el PDF con Puppeteer:', error);
+
+        res.status(500).send(`Error al generar el PDF: ${error.message || 'Error desconocido'}`);
+    } finally {
+        if (browser !== null) {
+            await browser.close();
+        }
+    }
+};
