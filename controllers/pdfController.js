@@ -1,10 +1,10 @@
+
 const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
 
 exports.generatePdf = async (req, res) => {
     const formData = req.body;
 
- 
     const htmlContent = `
         <!DOCTYPE html>
         <html lang="es">
@@ -127,24 +127,30 @@ exports.generatePdf = async (req, res) => {
 
     let browser = null;
     try {
+        // Obtenemos la ruta ejecutable de Chromium proporcionada por @sparticuz/chromium
+        const executablePath = await chromium.executablePath;
+
+        // Validamos si la ruta es nula o indefinida antes de lanzar el navegador
+        if (!executablePath) {
+            throw new Error('Chromium executable path not found. This typically happens in serverless environments if @sparticuz/chromium fails to provide the path.');
+        }
+
         browser = await puppeteer.launch({
             args: chromium.args,
             defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath,
-            headless: chromium.headless, 
+            executablePath: executablePath, // Usamos la ruta obtenida
+            headless: chromium.headless, // Importante: debe ser true para entornos serverless
         });
 
         const page = await browser.newPage();
-
         await page.setContent(htmlContent, {
-            waitUntil: 'networkidle0' 
+            waitUntil: 'networkidle0'
         });
 
-        // Genera el PDF
         const pdfBuffer = await page.pdf({
-            format: 'Letter',        
-            printBackground: true,    
-            margin: {                 
+            format: 'Letter',
+            printBackground: true,
+            margin: {
                 top: '20mm',
                 right: '20mm',
                 bottom: '20mm',
@@ -153,12 +159,12 @@ exports.generatePdf = async (req, res) => {
         });
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=matricula_${formData.nombre}_${formData.apellido1}.pdf`);
+        res.setHeader('Content-Disposition', `attachment; filename=matricula_${formData.nombre || 'estudiante'}_${formData.apellido1 || ''}.pdf`);
         res.send(pdfBuffer);
 
     } catch (error) {
         console.error('❌ Error al generar el PDF con Puppeteer:', error);
-
+        // Envía un mensaje de error detallado al frontend
         res.status(500).send(`Error al generar el PDF: ${error.message || 'Error desconocido'}`);
     } finally {
         if (browser !== null) {
