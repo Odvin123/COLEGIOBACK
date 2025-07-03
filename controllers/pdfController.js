@@ -9,13 +9,12 @@ exports.generateStudentPdf = async (req, res) => {
         }
 
         const pdfDoc = await PDFDocument.create();
-        const page = pdfDoc.addPage();
+        let page = pdfDoc.addPage(); // Inicializa la primera página
 
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-        // const codeFont = await pdfDoc.embedFont(StandardFonts.Courier); // Ya no se usará directamente, pero se deja por si acaso
 
-        let yOffset = 750;
+        let yOffset = page.getHeight() - 50; // Inicia desde arriba con margen superior
         const margin = 50;
         const contentWidth = page.getWidth() - (2 * margin);
         const lineHeight = 18;
@@ -32,17 +31,25 @@ exports.generateStudentPdf = async (req, res) => {
         const borderColor = rgb(0.8, 0.8, 0.8); // Gris claro para bordes de tabla
         const headerBgColor = rgb(0.9, 0.9, 0.9); // Gris muy claro para fondo de encabezado
 
-        // Función auxiliar para dibujar una fila de tabla
-        const drawTableRow = (page, y, label, value, labelFont, valueFont, labelColor, valueColor, labelSize, valueSize) => {
-            const startY = y - cellPadding;
-            page.drawText(label, {
+        // Función auxiliar para dibujar una fila de tabla y manejar salto de página
+        const drawTableRow = async (currentPage, currentY, label, value, labelFont, valueFont, labelColor, valueColor, labelSize, valueSize) => {
+            const rowHeight = lineHeight + (cellPadding * 2);
+
+            // Si no hay suficiente espacio para la fila, añadir nueva página
+            if (currentY - rowHeight < margin) { // Si la siguiente fila excede el margen inferior
+                currentPage = pdfDoc.addPage();
+                currentY = currentPage.getHeight() - margin; // Reinicia yOffset en la nueva página
+            }
+
+            const startY = currentY - cellPadding;
+            currentPage.drawText(label, {
                 x: margin + cellPadding,
                 y: startY,
                 font: labelFont,
                 size: labelSize,
                 color: labelColor,
             });
-            page.drawText(value, {
+            currentPage.drawText(value, {
                 x: margin + labelWidth + cellPadding + 5,
                 y: startY,
                 font: valueFont,
@@ -50,8 +57,43 @@ exports.generateStudentPdf = async (req, res) => {
                 color: valueColor,
                 maxWidth: valueWidth - cellPadding * 2,
             });
-            return lineHeight + (cellPadding * 2);
+            
+            // Dibuja la línea divisoria inferior de la fila
+            currentPage.drawLine({
+                start: { x: margin, y: currentY - rowHeight + cellPadding },
+                end: { x: margin + contentWidth, y: currentY - rowHeight + cellPadding },
+                color: borderColor,
+                thickness: 0.5,
+            });
+
+            return { newY: currentY - rowHeight, newPage: currentPage }; // Retorna el nuevo yOffset y la página actual
         };
+
+        // Función auxiliar para dibujar un encabezado de sección con manejo de página
+        const drawSectionHeader = async (currentPage, currentY, title) => {
+            const headerHeight = subHeadingSize + cellPadding * 2;
+            if (currentY - headerHeight < margin) { // Si el encabezado no cabe
+                currentPage = pdfDoc.addPage();
+                currentY = currentPage.getHeight() - margin;
+            }
+
+            currentPage.drawRectangle({
+                x: margin,
+                y: currentY - headerHeight,
+                width: contentWidth,
+                height: headerHeight,
+                color: headerBgColor,
+            });
+            currentPage.drawText(title, {
+                x: margin + cellPadding,
+                y: currentY - headerHeight + cellPadding,
+                font: boldFont,
+                size: subHeadingSize,
+                color: secondaryColor,
+            });
+            return { newY: currentY - headerHeight - 5, newPage: currentPage }; // Espacio después del encabezado
+        };
+
 
         // Título Principal
         page.drawText('FICHA DE MATRÍCULA', {
@@ -83,41 +125,17 @@ exports.generateStudentPdf = async (req, res) => {
             { label: 'Habita en Territorio Indígena', value: studentData.habitaIndigenaEstudiante || 'N/A' }
         ];
 
-        // Header for Student Data
-        page.drawRectangle({
-            x: margin,
-            y: yOffset - subHeadingSize - cellPadding * 2,
-            width: contentWidth,
-            height: subHeadingSize + cellPadding * 2,
-            color: headerBgColor,
-        });
-        page.drawText('DATOS DEL ESTUDIANTE', {
-            x: margin + cellPadding,
-            y: yOffset - subHeadingSize - cellPadding,
-            font: boldFont,
-            size: subHeadingSize,
-            color: secondaryColor,
-        });
-        yOffset -= (subHeadingSize + cellPadding * 2 + 5);
+        ({ newY: yOffset, newPage: page } = await drawSectionHeader(page, yOffset, 'DATOS DEL ESTUDIANTE'));
 
-        // Draw Student Data Table
-        let currentStudentY = yOffset;
-        studentFields.forEach((field) => {
-            const rowHeight = drawTableRow(page, currentStudentY, field.label, field.value, font, font, secondaryColor, secondaryColor, textSize, textSize);
-            page.drawLine({
-                start: { x: margin, y: currentStudentY - rowHeight + cellPadding },
-                end: { x: margin + contentWidth, y: currentStudentY - rowHeight + cellPadding },
-                color: borderColor,
-                thickness: 0.5,
-            });
-            currentStudentY -= rowHeight;
-        });
-        yOffset = currentStudentY - 20;
+        for (const field of studentFields) {
+            ({ newY: yOffset, newPage: page } = await drawTableRow(page, yOffset, field.label, field.value, font, font, secondaryColor, secondaryColor, textSize, textSize));
+        }
+        yOffset -= 20; // Espacio entre secciones
 
-        // --- Sección de Datos Académicos ---
+        // --- Sección de Datos Académicos del Estudiante ---
         const academicFields = [
             { label: 'Fecha de matrícula del estudiante', value: academicData.fechaMatricula ? new Date(academicData.fechaMatricula).toLocaleDateString() : 'N/A' },
-            { label: 'Ciudad de Residencia', value: studentData.residenciaMunicipio || 'N/A' }, // Asumimos que es la misma ciudad de residencia del estudiante
+            { label: 'Ciudad de Residencia', value: studentData.residenciaMunicipio || 'N/A' },
             { label: 'Municipio Académico', value: academicData.municipioAcad || 'N/A' },
             { label: 'Código único del establecimiento', value: academicData.codigoUnico || 'N/A' },
             { label: 'Código del Centro Educativo', value: academicData.codigoCentro || 'N/A' },
@@ -130,40 +148,16 @@ exports.generateStudentPdf = async (req, res) => {
             { label: '¿Es repitente?', value: academicData.repitente || 'N/A' }
         ];
 
-        // Header for Academic Data
-        page.drawRectangle({
-            x: margin,
-            y: yOffset - subHeadingSize - cellPadding * 2,
-            width: contentWidth,
-            height: subHeadingSize + cellPadding * 2,
-            color: headerBgColor,
-        });
-        page.drawText('DATOS ACADÉMICOS DEL ESTUDIANTE', {
-            x: margin + cellPadding,
-            y: yOffset - subHeadingSize - cellPadding,
-            font: boldFont,
-            size: subHeadingSize,
-            color: secondaryColor,
-        });
-        yOffset -= (subHeadingSize + cellPadding * 2 + 5);
+        ({ newY: yOffset, newPage: page } = await drawSectionHeader(page, yOffset, 'DATOS ACADÉMICOS DEL ESTUDIANTE'));
 
-        // Draw Academic Data Table
-        let currentAcademicY = yOffset;
-        academicFields.forEach((field) => {
-            const rowHeight = drawTableRow(page, currentAcademicY, field.label, field.value, font, font, secondaryColor, secondaryColor, textSize, textSize);
-            page.drawLine({
-                start: { x: margin, y: currentAcademicY - rowHeight + cellPadding },
-                end: { x: margin + contentWidth, y: currentAcademicY - rowHeight + cellPadding },
-                color: borderColor,
-                thickness: 0.5,
-            });
-            currentAcademicY -= rowHeight;
-        });
-        yOffset = currentAcademicY - 20;
+        for (const field of academicFields) {
+            ({ newY: yOffset, newPage: page } = await drawTableRow(page, yOffset, field.label, field.value, font, font, secondaryColor, secondaryColor, textSize, textSize));
+        }
+        yOffset -= 20; // Espacio entre secciones
 
         // --- Sección de Datos de Padres o Tutor ---
         const parentTutorFields = [];
-        if (parentData.primerNombreMadre) {
+        if (parentData.primerNombreMadre || parentData.primerApellidoMadre || parentData.cedulaMadre || parentData.telefonoMadre) {
             parentTutorFields.push({ section: 'Datos de la Madre', fields: [
                 { label: 'Nombre Completo', value: `${parentData.primerNombreMadre || ''} ${parentData.segundoNombreMadre || ''} ${parentData.primerApellidoMadre || ''} ${parentData.segundoApellidoMadre || ''}` },
                 { label: 'Tipo Identificación', value: parentData.tipoIdentificacionMadre || 'N/A' },
@@ -171,7 +165,7 @@ exports.generateStudentPdf = async (req, res) => {
                 { label: 'Teléfono', value: parentData.telefonoMadre || 'N/A' }
             ]});
         }
-        if (parentData.primerNombrePadre) {
+        if (parentData.primerNombrePadre || parentData.primerApellidoPadre || parentData.cedulaPadre || parentData.telefonoPadre) {
             parentTutorFields.push({ section: 'Datos del Padre', fields: [
                 { label: 'Nombre Completo', value: `${parentData.primerNombrePadre || ''} ${parentData.segundoNombrePadre || ''} ${parentData.primerApellidoPadre || ''} ${parentData.segundoApellidoPadre || ''}` },
                 { label: 'Tipo Identificación', value: parentData.tipoIdentificacionPadre || 'N/A' },
@@ -179,7 +173,7 @@ exports.generateStudentPdf = async (req, res) => {
                 { label: 'Teléfono', value: parentData.telefonoPadre || 'N/A' }
             ]});
         }
-        if (parentData.primerNombreTutor) {
+        if (parentData.primerNombreTutor || parentData.primerApellidoTutor || parentData.cedulaTutor || parentData.telefonoTutor) {
             parentTutorFields.push({ section: 'Datos del Tutor', fields: [
                 { label: 'Nombre Completo', value: `${parentData.primerNombreTutor || ''} ${parentData.segundoNombreTutor || ''} ${parentData.primerApellidoTutor || ''} ${parentData.segundoApellidoTutor || ''}` },
                 { label: 'Tipo Identificación', value: parentData.tipoIdentificacionTutor || 'N/A' },
@@ -189,25 +183,14 @@ exports.generateStudentPdf = async (req, res) => {
         }
 
         if (parentTutorFields.length > 0) {
-            // Header for Parent/Tutor Data
-            page.drawRectangle({
-                x: margin,
-                y: yOffset - subHeadingSize - cellPadding * 2,
-                width: contentWidth,
-                height: subHeadingSize + cellPadding * 2,
-                color: headerBgColor,
-            });
-            page.drawText('DATOS DE PADRES O TUTOR', {
-                x: margin + cellPadding,
-                y: yOffset - subHeadingSize - cellPadding,
-                font: boldFont,
-                size: subHeadingSize,
-                color: secondaryColor,
-            });
-            yOffset -= (subHeadingSize + cellPadding * 2 + 5);
-
-            parentTutorFields.forEach(section => {
-                // Sección específica (Madre/Padre/Tutor)
+            ({ newY: yOffset, newPage: page } = await drawSectionHeader(page, yOffset, 'DATOS DE PADRES O TUTOR'));
+            
+            for (const section of parentTutorFields) {
+                // Título de la sub-sección (Madre/Padre/Tutor)
+                if (yOffset - lineHeight < margin) { // Check for space before drawing sub-section title
+                    page = pdfDoc.addPage();
+                    yOffset = page.getHeight() - margin;
+                }
                 page.drawText(section.section.toUpperCase(), {
                     x: margin,
                     y: yOffset - lineHeight,
@@ -217,19 +200,11 @@ exports.generateStudentPdf = async (req, res) => {
                 });
                 yOffset -= (lineHeight + 5);
 
-                let currentParentY = yOffset;
-                section.fields.forEach(field => {
-                    const rowHeight = drawTableRow(page, currentParentY, field.label, field.value, font, font, secondaryColor, secondaryColor, textSize, textSize);
-                    page.drawLine({
-                        start: { x: margin, y: currentParentY - rowHeight + cellPadding },
-                        end: { x: margin + contentWidth, y: currentParentY - rowHeight + cellPadding },
-                        color: borderColor,
-                        thickness: 0.5,
-                    });
-                    currentParentY -= rowHeight;
-                });
-                yOffset = currentParentY - 10;
-            });
+                for (const field of section.fields) {
+                    ({ newY: yOffset, newPage: page } = await drawTableRow(page, yOffset, field.label, field.value, font, font, secondaryColor, secondaryColor, textSize, textSize));
+                }
+                yOffset -= 10; // Espacio entre subsecciones de padres/tutores
+            }
         }
 
         const pdfBytes = await pdfDoc.save();
