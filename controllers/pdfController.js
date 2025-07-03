@@ -13,18 +13,18 @@ exports.generateStudentPdf = async (req, res) => {
 
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-        const codeFont = await pdfDoc.embedFont(StandardFonts.Courier); // Para códigos, si se desea un estilo diferente
+        // const codeFont = await pdfDoc.embedFont(StandardFonts.Courier); // Ya no se usará directamente, pero se deja por si acaso
 
         let yOffset = 750;
         const margin = 50;
-        const contentWidth = page.getWidth() - (2 * margin); // Ancho disponible para el contenido
+        const contentWidth = page.getWidth() - (2 * margin);
         const lineHeight = 18;
         const headingSize = 18;
         const subHeadingSize = 14;
         const textSize = 10;
-        const labelWidth = 150; // Ancho para las etiquetas de los campos
-        const valueWidth = contentWidth - labelWidth - 10; // Ancho para los valores de los campos
-        const cellPadding = 5; // Espacio interno de las "celdas"
+        const labelWidth = 180; // Incrementado para acomodar etiquetas más largas
+        const valueWidth = contentWidth - labelWidth - 10;
+        const cellPadding = 5;
 
         // Colores
         const primaryColor = rgb(0, 0.53, 0.71); // Azul Oscuro (ej. #0088B5)
@@ -43,14 +43,14 @@ exports.generateStudentPdf = async (req, res) => {
                 color: labelColor,
             });
             page.drawText(value, {
-                x: margin + labelWidth + cellPadding + 5, // Pequeño espacio extra
+                x: margin + labelWidth + cellPadding + 5,
                 y: startY,
                 font: valueFont,
                 size: valueSize,
                 color: valueColor,
-                maxWidth: valueWidth - cellPadding * 2, // Para asegurar que el texto no se desborde
+                maxWidth: valueWidth - cellPadding * 2,
             });
-            return lineHeight + (cellPadding * 2); // Altura de la fila
+            return lineHeight + (cellPadding * 2);
         };
 
         // Título Principal
@@ -65,7 +65,6 @@ exports.generateStudentPdf = async (req, res) => {
 
         // --- Sección de Datos del Estudiante ---
         const studentFields = [
-            { label: 'ID', value: studentData.id || 'N/A' },
             { label: 'Nombre Completo', value: `${studentData.primerNombre || ''} ${studentData.segundoNombre || ''} ${studentData.primerApellido || ''} ${studentData.segundoApellido || ''}` },
             { label: 'Teléfono', value: studentData.telefono || 'N/A' },
             { label: 'Dirección', value: studentData.direccion || 'N/A' },
@@ -99,11 +98,11 @@ exports.generateStudentPdf = async (req, res) => {
             size: subHeadingSize,
             color: secondaryColor,
         });
-        yOffset -= (subHeadingSize + cellPadding * 2 + 5); // Espacio después del encabezado
+        yOffset -= (subHeadingSize + cellPadding * 2 + 5);
 
         // Draw Student Data Table
         let currentStudentY = yOffset;
-        studentFields.forEach((field, index) => {
+        studentFields.forEach((field) => {
             const rowHeight = drawTableRow(page, currentStudentY, field.label, field.value, font, font, secondaryColor, secondaryColor, textSize, textSize);
             page.drawLine({
                 start: { x: margin, y: currentStudentY - rowHeight + cellPadding },
@@ -113,23 +112,22 @@ exports.generateStudentPdf = async (req, res) => {
             });
             currentStudentY -= rowHeight;
         });
-        yOffset = currentStudentY - 20; // Espacio entre secciones
+        yOffset = currentStudentY - 20;
 
         // --- Sección de Datos Académicos ---
         const academicFields = [
-            { label: 'ID', value: academicData.id || 'N/A' },
-            { label: 'Fecha Matrícula', value: academicData.fechaMatricula ? new Date(academicData.fechaMatricula).toLocaleDateString() : 'N/A' },
-            { label: 'Departamento Académico', value: academicData.departamentoacad || 'N/A' },
+            { label: 'Fecha de matrícula del estudiante', value: academicData.fechaMatricula ? new Date(academicData.fechaMatricula).toLocaleDateString() : 'N/A' },
+            { label: 'Ciudad de Residencia', value: studentData.residenciaMunicipio || 'N/A' }, // Asumimos que es la misma ciudad de residencia del estudiante
             { label: 'Municipio Académico', value: academicData.municipioAcad || 'N/A' },
-            { label: 'Código Único', value: academicData.codigoUnico || 'N/A' },
-            { label: 'Código Centro', value: academicData.codigoCentro || 'N/A' },
-            { label: 'Nombre del Centro', value: academicData.nombreCentro || 'N/A' },
-            { label: 'Nivel Educativo', value: academicData.nivelEducativo || 'N/A' },
+            { label: 'Código único del establecimiento', value: academicData.codigoUnico || 'N/A' },
+            { label: 'Código del Centro Educativo', value: academicData.codigoCentro || 'N/A' },
+            { label: 'Nombre del centro educativo', value: academicData.nombreCentro || 'N/A' },
+            { label: 'Nivel educativo', value: academicData.nivelEducativo || 'N/A' },
             { label: 'Modalidad', value: academicData.modalidad || 'N/A' },
             { label: 'Turno', value: academicData.turno || 'N/A' },
-            { label: 'Grado', value: academicData.grado || 'N/A' },
+            { label: 'Nivel/Grado/Año/Ciclo/Grupo', value: academicData.grado || 'N/A' },
             { label: 'Sección', value: academicData.seccion || 'N/A' },
-            { label: 'Repitente', value: academicData.repitente || 'N/A' }
+            { label: '¿Es repitente?', value: academicData.repitente || 'N/A' }
         ];
 
         // Header for Academic Data
@@ -140,7 +138,7 @@ exports.generateStudentPdf = async (req, res) => {
             height: subHeadingSize + cellPadding * 2,
             color: headerBgColor,
         });
-        page.drawText('DATOS ACADÉMICOS', {
+        page.drawText('DATOS ACADÉMICOS DEL ESTUDIANTE', {
             x: margin + cellPadding,
             y: yOffset - subHeadingSize - cellPadding,
             font: boldFont,
@@ -151,7 +149,7 @@ exports.generateStudentPdf = async (req, res) => {
 
         // Draw Academic Data Table
         let currentAcademicY = yOffset;
-        academicFields.forEach((field, index) => {
+        academicFields.forEach((field) => {
             const rowHeight = drawTableRow(page, currentAcademicY, field.label, field.value, font, font, secondaryColor, secondaryColor, textSize, textSize);
             page.drawLine({
                 start: { x: margin, y: currentAcademicY - rowHeight + cellPadding },
@@ -230,7 +228,7 @@ exports.generateStudentPdf = async (req, res) => {
                     });
                     currentParentY -= rowHeight;
                 });
-                yOffset = currentParentY - 10; // Espacio entre subsecciones de padres/tutores
+                yOffset = currentParentY - 10;
             });
         }
 
