@@ -31,12 +31,12 @@ app.use(cors(corsOptions));
     const studentRoutes = require('./routes/studentRoutes');
     const parentRoutes = require('./routes/parentRoutes');
     const academicRoutes = require('./routes/academicRoutes');
-    const pdfRoutes = require('./routes/pdfRoutes'); 
+    const pdfRoutes = require('./routes/pdfRoutes'); // <-- Nueva importación
 
     app.use('/api/student', studentRoutes);
     app.use('/api/parent', parentRoutes);
     app.use('/api/academic', academicRoutes);
-    app.use('/api/generate-pdf', pdfRoutes); 
+    app.use('/api/generate-pdf', pdfRoutes); // <-- Nueva ruta para generar PDF
 
     app.post('/api/login', (req, res) => {
         const { correo, contraseña } = req.body;
