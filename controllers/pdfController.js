@@ -58,7 +58,6 @@ exports.generateStudentPdf = async (req, res) => {
                 maxWidth: valueWidth - cellPadding * 2,
             });
             
-            // Dibuja la línea divisoria inferior de la fila
             currentPage.drawLine({
                 start: { x: margin, y: currentY - rowHeight + cellPadding },
                 end: { x: margin + contentWidth, y: currentY - rowHeight + cellPadding },
@@ -66,13 +65,12 @@ exports.generateStudentPdf = async (req, res) => {
                 thickness: 0.5,
             });
 
-            return { newY: currentY - rowHeight, newPage: currentPage }; // Retorna el nuevo yOffset y la página actual
+            return { newY: currentY - rowHeight, newPage: currentPage }; 
         };
 
-        // Función auxiliar para dibujar un encabezado de sección con manejo de página
         const drawSectionHeader = async (currentPage, currentY, title) => {
             const headerHeight = subHeadingSize + cellPadding * 2;
-            if (currentY - headerHeight < margin) { // Si el encabezado no cabe
+            if (currentY - headerHeight < margin) { 
                 currentPage = pdfDoc.addPage();
                 currentY = currentPage.getHeight() - margin;
             }
@@ -91,11 +89,10 @@ exports.generateStudentPdf = async (req, res) => {
                 size: subHeadingSize,
                 color: secondaryColor,
             });
-            return { newY: currentY - headerHeight - 5, newPage: currentPage }; // Espacio después del encabezado
+            return { newY: currentY - headerHeight - 5, newPage: currentPage }; 
         };
 
 
-        // Título Principal
         page.drawText('FICHA DE MATRÍCULA', {
             x: margin,
             y: yOffset,
@@ -105,7 +102,6 @@ exports.generateStudentPdf = async (req, res) => {
         });
         yOffset -= 40;
 
-        // --- Sección de Datos del Estudiante ---
         const studentFields = [
             { label: 'Nombre Completo', value: `${studentData.primerNombre || ''} ${studentData.segundoNombre || ''} ${studentData.primerApellido || ''} ${studentData.segundoApellido || ''}` },
             { label: 'Teléfono', value: studentData.telefono || 'N/A' },
@@ -130,9 +126,8 @@ exports.generateStudentPdf = async (req, res) => {
         for (const field of studentFields) {
             ({ newY: yOffset, newPage: page } = await drawTableRow(page, yOffset, field.label, field.value, font, font, secondaryColor, secondaryColor, textSize, textSize));
         }
-        yOffset -= 20; // Espacio entre secciones
+        yOffset -= 20; 
 
-        // --- Sección de Datos Académicos del Estudiante ---
         const academicFields = [
             { label: 'Fecha de matrícula del estudiante', value: academicData.fechaMatricula ? new Date(academicData.fechaMatricula).toLocaleDateString() : 'N/A' },
             { label: 'Ciudad de Residencia', value: studentData.residenciaMunicipio || 'N/A' },
@@ -153,9 +148,9 @@ exports.generateStudentPdf = async (req, res) => {
         for (const field of academicFields) {
             ({ newY: yOffset, newPage: page } = await drawTableRow(page, yOffset, field.label, field.value, font, font, secondaryColor, secondaryColor, textSize, textSize));
         }
-        yOffset -= 20; // Espacio entre secciones
+        yOffset -= 20; 
 
-        // --- Sección de Datos de Padres o Tutor ---
+       
         const parentTutorFields = [];
         if (parentData.primerNombreMadre || parentData.primerApellidoMadre || parentData.cedulaMadre || parentData.telefonoMadre) {
             parentTutorFields.push({ section: 'Datos de la Madre', fields: [
@@ -186,8 +181,8 @@ exports.generateStudentPdf = async (req, res) => {
             ({ newY: yOffset, newPage: page } = await drawSectionHeader(page, yOffset, 'DATOS DE PADRES O TUTOR'));
             
             for (const section of parentTutorFields) {
-                // Título de la sub-sección (Madre/Padre/Tutor)
-                if (yOffset - lineHeight < margin) { // Check for space before drawing sub-section title
+
+                if (yOffset - lineHeight < margin) { 
                     page = pdfDoc.addPage();
                     yOffset = page.getHeight() - margin;
                 }
@@ -203,7 +198,7 @@ exports.generateStudentPdf = async (req, res) => {
                 for (const field of section.fields) {
                     ({ newY: yOffset, newPage: page } = await drawTableRow(page, yOffset, field.label, field.value, font, font, secondaryColor, secondaryColor, textSize, textSize));
                 }
-                yOffset -= 10; // Espacio entre subsecciones de padres/tutores
+                yOffset -= 10; 
             }
         }
 
